@@ -124,8 +124,12 @@ export async function matchCommand<T>(
       throw new ParseError(ast.length, 'Unexpected end of command');
     else if (command.atEnd) break;
 
-    if (i != 0 && command.consume() != ' ')
-      throw new ParseError(i, 'Expected " "');
+    const currChar = command.peek();
+
+    if (i != 0 && currChar != ' ')
+      throw new ParseError(i, 'Expected " ", found ' + currChar);
+    else if (i != 0) command.consume();
+
     if (param.type == 'string_literal') {
       const nn = command.consumen(param.value.length).join('');
       if (nn != param.value)

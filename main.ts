@@ -85,6 +85,7 @@ export function generateCommandString(def: ParsedCommandDef): string {
 }
 
 export class ParseError extends Error {
+  tokenLevel: number;
   constructor(tokenLevel: number, ...params: any[]) {
     // Pass remaining arguments (including vendor specific ones) to parent constructor
     super(...params);
@@ -93,12 +94,12 @@ export class ParseError extends Error {
     if (Error.captureStackTrace) {
       Error.captureStackTrace(this, ParseError);
     }
-
+    this.tokenLevel = tokenLevel;
     this.name = 'ParseError';
   }
 }
 
-export function matchCommand<T>(
+export async function matchCommand<T>(
   ast: ParsedCommandDef,
   cmd: string,
   types: {
@@ -107,10 +108,12 @@ export function matchCommand<T>(
       arg0: ParserStream<string>,
       // eslint-disable-next-line no-unused-vars
       arg1: T
-    ) => { stream: ParserStream<string>; result: any };
+    ) =>
+      | Promise<{ stream: ParserStream<string>; result: any }>
+      | { stream: ParserStream<string>; result: any };
   },
   typeMeta: T
-): { [key: string]: any } {
+): Promise<{ [key: string]: any }> {
   let command = new ParserStream(cmd.split(''));
   const params: { [key: string]: any } = {};
   for (const [i, param] of ast.entries()) {
@@ -144,7 +147,10 @@ export function matchCommand<T>(
           );
       } else if (param.ptype.value in types) {
         try {
-          const output = types[param.ptype.value](command.clone(), typeMeta);
+          const output = await types[param.ptype.value](
+            command.clone(),
+            typeMeta
+          );
           command = output.stream;
           params[param.name] = output.result;
         } catch (e) {

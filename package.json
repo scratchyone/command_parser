@@ -1,12 +1,11 @@
 {
   "name": "@scratchyone/command_parser",
   "version": "1.0.0",
-  "description": "",
   "main": "build/main.js",
   "types": "build/main.d.ts",
   "scripts": {
     "dev": "npx pegjs grammar.pegjs; ts-node-dev --respawn main.ts",
-    "build": "npx pegjs grammar.pegjs; tsc",
+    "build": "npx pegjs grammar.pegjs; copyfiles grammar.js build; tsc",
     "prepare": "npm run build"
   },
   "author": "",
@@ -24,5 +23,14 @@
     "prettier": "2.2.1",
     "ts-node-dev": "^1.0.0",
     "typescript": "^4.1.2"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/scratchyone/command_parser.git"
+  },
+  "bugs": {
+    "url": "https://github.com/scratchyone/command_parser/issues"
+  },
+  "homepage": "https://github.com/scratchyone/command_parser#readme",
+  "description": ""
 }

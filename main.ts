@@ -117,6 +117,7 @@ export async function matchCommand<T>(
   let command = new ParserStream(cmd.split(''));
   const params: { [key: string]: any } = {};
   for (const [i, param] of ast.entries()) {
+    const backup = command.clone();
     if (
       command.atEnd &&
       ast.slice(i).find((n) => n.type == 'string_literal' || !n.optional)
@@ -129,7 +130,6 @@ export async function matchCommand<T>(
     if (i != 0 && currChar != ' ')
       throw new ParseError(i, 'Expected " ", found ' + currChar);
     else if (i != 0) command.consume();
-
     if (param.type == 'string_literal') {
       const nn = command.consumen(param.value.length).join('');
       if (nn != param.value)
@@ -149,6 +149,7 @@ export async function matchCommand<T>(
               ' or '
             )}, found ${command.nextn(5).join('')}`
           );
+        else if (param.optional) command = backup;
       } else if (param.ptype.value in types) {
         try {
           const output = await types[param.ptype.value](
@@ -159,6 +160,7 @@ export async function matchCommand<T>(
           params[param.name] = output.result;
         } catch (e) {
           if (!param.optional) throw e;
+          else if (param.optional) command = backup;
         }
       } else {
         throw new Error(

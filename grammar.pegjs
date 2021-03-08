@@ -1,7 +1,7 @@
 command = (token:command_token _ { return token })+
 command_token = literal / optional / required
 literal = word:word { return {type: "string_literal", value: word} }
-word = letters:[A-Za-z0-9]+ { return letters.join("") }
+word = letters:[A-Za-z0-9_]+ { return letters.join("") }
 optional = "[" param:param "]" { return {optional: true, ...param} }
 required = "<" param:param ">" { return {optional: false, ...param} }
 param = name:word ":" _ ptype:ptype { return {type: "param", name, ptype} }

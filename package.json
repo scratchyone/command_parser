@@ -2,9 +2,12 @@
   "name": "@scratchyone/command_parser",
   "version": "1.0.0",
   "description": "",
+  "main": "build/main.js",
+  "types": "build/main.d.ts",
   "scripts": {
     "dev": "npx pegjs grammar.pegjs; ts-node-dev --respawn main.ts",
-    "build": "npx pegjs grammar.pegjs; tsc"
+    "build": "npx pegjs grammar.pegjs; tsc",
+    "prepare": "npm run build"
   },
   "author": "",
   "license": "ISC",

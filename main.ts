@@ -122,7 +122,7 @@ export async function matchCommand<T>(
       command.atEnd &&
       ast.slice(i).find((n) => n.type == 'string_literal' || !n.optional)
     )
-      throw new ParseError(ast.length, 'Unexpected end of command');
+      throw new ParseError(i, 'Unexpected end of command');
     else if (command.atEnd) break;
 
     const currChar = command.peek();

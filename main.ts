@@ -132,12 +132,13 @@ export async function matchCommand<T>(
     else if (i != 0) command.consume();
     if (param.type == 'string_literal') {
       const nn = command.consumen(param.value.length).join('');
-      if (nn != param.value)
+      if (nn.toLowerCase() != param.value.toLowerCase())
         throw new ParseError(i, `Expected ${param.value}, found ${nn}`);
     } else if (param.type == 'param') {
       if (param.ptype.type == 'string_or') {
         const matched_string = param.ptype.values.find(
-          (v) => command.nextn(v.length).join('') == v
+          (v) =>
+            command.nextn(v.length).join('').toLowerCase() == v.toLowerCase()
         );
         if (matched_string) {
           params[param.name] = matched_string;

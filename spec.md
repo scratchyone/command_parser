@@ -4,7 +4,7 @@ Every command grammar is made up of multiple types of components, seperated by s
 
 ## Literals
 
-Literals are plain strings inside the grammar that must always be directly matched and will not affect the output of the command parser.
+Literals are plain strings inside the grammar that must always be directly matched and will not affect the output of the command parser. They are case insensitive. Literals can also be seperated by `/` to produce aliases, which are similar to string parameters but will not be included in the output parse result, and will generate a different syntax in `generateCommandString`.
 
 ### Example
 
@@ -28,4 +28,4 @@ sayhello <name: string>
 
 ## Types
 
-There are two possible ways to specify types in command grammars. You can have standard type names (e.g. `name: string`), or specific allowed strings (e.g. `mode: "on" | "off"`). The meaning and final parsing behavior of each specific type name is up to the implementor of this specification.
+There are two possible ways to specify types in command grammars. You can have standard type names (e.g. `name: string`), or specific allowed strings (e.g. `mode: "on" | "off"`). Specific allowed strings are case insensitive. The meaning and final parsing behavior of each specific type name is up to the implementor of this specification.

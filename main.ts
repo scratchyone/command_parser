@@ -40,7 +40,7 @@ export class ParserStream<T> {
 
 export interface StringLiteral {
   type: 'string_literal';
-  value: string;
+  values: string[];
 }
 export interface Param {
   type: 'param';
@@ -66,7 +66,7 @@ export function generateCommandString(def: ParsedCommandDef): string {
   const strings = [];
   for (const param of def) {
     if (param.type == 'string_literal') {
-      strings.push(param.value);
+      strings.push(param.values.join('/'));
     } else if (param.type == 'param') {
       let str = '';
       if (param.optional) str += '[';
@@ -131,9 +131,17 @@ export async function matchCommand<T>(
       throw new ParseError(i, 'Expected " ", found ' + currChar);
     else if (i != 0) command.consume();
     if (param.type == 'string_literal') {
-      const nn = command.consumen(param.value.length).join('');
-      if (nn.toLowerCase() != param.value.toLowerCase())
-        throw new ParseError(i, `Expected ${param.value}, found ${nn}`);
+      const matched_string = param.values.find(
+        (v) => command.nextn(v.length).join('').toLowerCase() == v.toLowerCase()
+      );
+      if (matched_string) command.consumen(matched_string.length);
+      else
+        throw new ParseError(
+          i,
+          `Expected one of ${param.values.join(' or ')}, found ${command
+            .nextn(5)
+            .join('')}`
+        );
     } else if (param.type == 'param') {
       if (param.ptype.type == 'string_or') {
         const matched_string = param.ptype.values.find(
@@ -182,11 +190,8 @@ export async function matchCommand<T>(
     );
   return params;
 }
-/*
-interface TypeMeta {
-  channels: { name: string; id: string }[];
-}
 
+/*
 const types = {
   string: (command: ParserStream<string>) => {
     let buffer = '';
@@ -200,37 +205,23 @@ const types = {
       );
     return { stream: command, result: buffer };
   },
-  channel: (command: ParserStream<string>, meta: TypeMeta) => {
-    let buffer = '';
-    while (command.peek() != ' ' && !command.atEnd) {
-      buffer += command.consume();
-    }
-    if (parseInt(buffer)) return { stream: command, result: buffer };
-    else if (/<#\d+>/.test(buffer))
-      return {
-        stream: command,
-        result: buffer.match(/<#(?<id>\d+)>/)?.groups?.id,
-      };
-    else if (meta.channels.find((n) => n.name == buffer))
-      return {
-        stream: command,
-        result: meta.channels.find((n) => n.name == buffer),
-      };
-    else throw new ParseError(command.count, 'Expected channel');
-  },
 };
+(async () => {
+  const output = parseCommandGrammar(
+    'reminder/rm <action: "add" | "remove"> <text: string>'
+  );
 
-
-console.dir(output, {
-  depth: null,
-});
-console.log('!' + generateCommandString(output));
-console.log(
-  matchCommand(output, 'tmprole remove 2345453', types, {
-    channels: [
-      { name: 'general', id: '432323234324234' },
-      { name: 'main', id: '0899898898989' },
-    ],
-  })
-);
+  console.dir(output, {
+    depth: null,
+  });
+  console.log('!' + generateCommandString(output));
+  console.log(
+    await matchCommand(output, 'rm add 2345453', types, {
+      channels: [
+        { name: 'general', id: '432323234324234' },
+        { name: 'main', id: '0899898898989' },
+      ],
+    })
+  );
+})();
 */

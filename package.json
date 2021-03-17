@@ -5,6 +5,7 @@
   "types": "build/main.d.ts",
   "scripts": {
     "dev": "npx pegjs grammar.pegjs; ts-node-dev --respawn main.ts",
+    "bench": "npm run build; node build/bench.js",
     "build": "npx pegjs grammar.pegjs; copyfiles grammar.js build; tsc",
     "prepare": "npm run build"
   },
@@ -14,9 +15,11 @@
     "pegjs": "^0.10.0"
   },
   "devDependencies": {
+    "@types/benchmark": "^2.1.0",
     "@types/node": "^14.14.10",
     "@typescript-eslint/eslint-plugin": "^4.9.0",
     "@typescript-eslint/parser": "^4.9.0",
+    "benchmark": "^2.1.4",
     "eslint": "^7.15.0",
     "eslint-config-prettier": "^7.0.0",
     "eslint-plugin-prettier": "^3.2.0",

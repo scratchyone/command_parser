@@ -6,3 +6,4 @@ grammar.pegjs
 spec.md
 tsconfig.json
 .gitignore
+build/bench*

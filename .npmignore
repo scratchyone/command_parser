@@ -1,9 +1,0 @@
-node_modules
-.eslintrc.json
-.prettierrc
-main.ts
-grammar.pegjs
-spec.md
-tsconfig.json
-.gitignore
-build/bench*

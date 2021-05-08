@@ -1,16 +1,15 @@
 const pegjs = require('./grammar.js');
+import jsStringEscape from 'js-string-escape';
+
 export class ParserStream<T> {
-  characters: T[];
-  cnt: number;
+  public characters: T[];
+  public count: number;
   public constructor(input: T[]) {
     this.characters = input;
-    this.cnt = 0;
+    this.count = 0;
   }
   public get atEnd(): boolean {
     return !this.characters.length;
-  }
-  public get count(): number {
-    return this.cnt;
   }
   public peek(n?: number): T | undefined {
     if (this.characters.length <= (n || 0)) return undefined;
@@ -18,23 +17,18 @@ export class ParserStream<T> {
   }
   public consume(n?: number): T | undefined {
     if (this.characters.length <= (n || 0)) return undefined;
-    const tmp = this.peek(n);
-    this.characters.splice(n || 0, 1);
-    this.cnt++;
-    return tmp;
+    return this.characters.splice(n || 0, 1)[0];
   }
   public nextn(n: number): T[] {
     return this.characters.slice(0, n);
   }
   public clone(): ParserStream<T> {
-    const tmp = new ParserStream([...this.characters]);
-    tmp.cnt = this.count;
+    const tmp = new ParserStream(this.characters.slice(0));
+    tmp.count = this.count;
     return tmp;
   }
   public consumen(n: number): T[] {
-    const tmp = this.nextn(n);
-    for (let i = 0; i < n; i++) this.consume();
-    return tmp;
+    return this.characters.splice(0, n);
   }
 }
 
@@ -99,6 +93,119 @@ export class ParseError extends Error {
   }
 }
 
+export function generateCommandMatcherFunction<T>(
+  ast: ParsedCommandDef,
+  types: {
+    [key: string]: (
+      // eslint-disable-next-line no-unused-vars
+      arg0: ParserStream<string>,
+      // eslint-disable-next-line no-unused-vars
+      arg1: T
+    ) =>
+      | Promise<{ stream: ParserStream<string>; result: any }>
+      | { stream: ParserStream<string>; result: any };
+  }
+): (cmd: string, typeMeta: T) => Promise<{ [key: string]: any }> {
+  const f = `async (cmd, typeMeta) => {\n  let command = new ParserStream(cmd.split(''));\n  const params = {};\n${[
+    ...ast.entries(),
+  ]
+    .map(([i, param]) => {
+      let buffer = '';
+      if (ast.slice(i).find((n) => n.type == 'string_literal' || !n.optional))
+        buffer += `  if(command.atEnd)\n    throw new ParseError(${i}, 'Unexpected end of command');\n`;
+      else buffer += '  if(command.atEnd)\n    return params;\n';
+      if (param.type == 'string_literal') {
+        let first = true;
+        for (const value of [...param.values].sort(
+          (a, b) => b.length - a.length
+        )) {
+          if (first) buffer += '  ';
+          else buffer += '  else ';
+          buffer += `if(command.nextn(${
+            value.length + (i == 0 ? 0 : 1)
+          }).join('').toLowerCase() == '${jsStringEscape(
+            (i == 0 ? '' : ' ') + value.toLowerCase()
+          )}')\n`;
+          buffer += `    command.consumen(${
+            value.length + (i == 0 ? 0 : 1)
+          });\n`;
+          first = false;
+        }
+        if (i != 0) {
+          buffer += "  else if(command.peek() != ' ')\n";
+          buffer += `    throw new ParseError(${i}, 'Expected " ", found ' + command.peek());\n`;
+        }
+        buffer += `  else\n    throw new ParseError(${i}, 'Expected${
+          param.values.length == 1 ? ' ' : ' either '
+        }${param.values.join(' or ')}, found ' + command.nextn(${
+          param.values.reduce((a, b) => (a.length > b.length ? a : b), '')
+            .length + (i == 0 ? 0 : 1)
+        }).join('')${i == 0 ? '' : '.substring(1)'});\n`;
+      } else if (param.type == 'param') {
+        if (param.ptype.type == 'string_or') {
+          let first = true;
+          for (const value of [...param.ptype.values].sort(
+            (a, b) => b.length - a.length
+          )) {
+            if (first) buffer += '  ';
+            else buffer += '  else ';
+            buffer += `if(command.nextn(${
+              value.length + (i == 0 ? 0 : 1)
+            }).join('').toLowerCase() == '${jsStringEscape(
+              (i == 0 ? '' : ' ') + value.toLowerCase()
+            )}') {\n`;
+            buffer += `    params['${jsStringEscape(
+              param.name
+            )}'] = '${jsStringEscape(value)}';\n    command.consumen(${
+              value.length + (i == 0 ? 0 : 1)
+            });\n  }\n`;
+            first = false;
+          }
+          if (i != 0) {
+            buffer += "  else if(command.peek() != ' ')\n";
+            buffer += `    throw new ParseError(${i}, 'Expected " ", found ' + command.peek());\n`;
+          }
+          if (!param.optional)
+            buffer += `  else\n    throw new ParseError(${i}, 'Expected${
+              param.ptype.values.length == 1 ? ' ' : ' either '
+            }${param.ptype.values.join(' or ')}, found ' + command.nextn(${
+              param.ptype.values.reduce(
+                (a, b) => (a.length > b.length ? a : b),
+                ''
+              ).length + (i == 0 ? 0 : 1)
+            }).join('')${i == 0 ? '' : '.substring(1)'});\n`;
+        } else if (param.ptype.value in types) {
+          if (param.optional) buffer += '  try {\n';
+          else buffer += '  {\n';
+          buffer += "    if(command.peek() != ' ')\n";
+          buffer += `      throw new ParseError(${i}, 'Expected " ", found ' + command.peek());\n`;
+          buffer += '    const newCommand = command.clone();\n';
+          buffer += `    newCommand.count = ${i};\n`;
+          buffer += '    newCommand.consume();\n';
+          buffer += `    const res = await (${types[
+            param.ptype.value
+          ].toString()})(newCommand, typeMeta);\n`;
+          buffer += `    command = res.stream;\n    params['${jsStringEscape(
+            param.name
+          )}'] = res.result;\n`;
+          if (param.optional) buffer += '  } catch(e) {}\n';
+          else buffer += '  }\n';
+        } else {
+          throw new Error(
+            'Internal error, unexpected param ptype found in AST'
+          );
+        }
+      } else {
+        throw new Error('Internal error, unexpected param type found in AST');
+      }
+      return buffer;
+    })
+    .join('')}\n  if(!command.atEnd)\n    throw new ParseError(${
+    ast.length
+  }, 'Expected end of command, found ' + command.characters.join());\n  return params;\n}`;
+  return eval(f);
+}
+
 export async function matchCommand<T>(
   ast: ParsedCommandDef,
   cmd: string,
@@ -161,10 +268,9 @@ export async function matchCommand<T>(
         else if (param.optional) command = backup;
       } else if (param.ptype.value in types) {
         try {
-          const output = await types[param.ptype.value](
-            command.clone(),
-            typeMeta
-          );
+          const newCommand = command.clone();
+          newCommand.count = i;
+          const output = await types[param.ptype.value](newCommand, typeMeta);
           command = output.stream;
           params[param.name] = output.result;
         } catch (e) {
@@ -184,9 +290,7 @@ export async function matchCommand<T>(
   if (!command.atEnd)
     throw new ParseError(
       ast.length,
-      `Expected characters at end of command, found ${command.characters.join(
-        ''
-      )}`
+      `Expected end of command, found ${command.characters.join('')}`
     );
   return params;
 }

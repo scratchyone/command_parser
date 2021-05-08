@@ -1,9 +1,9 @@
 import {
   parseCommandGrammar,
-  generateCommandString,
   matchCommand,
   ParserStream,
   ParseError,
+  generateCommandMatcherFunction,
 } from './main';
 
 const types = {
@@ -37,6 +37,7 @@ const commandString =
   'reminder/rm add [emote: "uwu" | "owo"] <duration: word> <text: string>';
 
 const ast = parseCommandGrammar(commandString);
+const commandMatcherFunction = generateCommandMatcherFunction(ast, types);
 
 test('grammar parses correctly', () => {
   expect(parseCommandGrammar(commandString)).toStrictEqual([
@@ -88,6 +89,37 @@ test('command errors give correct tokenLevel', async () => {
   let error: ParseError | undefined;
   try {
     await matchCommand(ast, 'rm addowo howdy there friend', types, null);
+  } catch (e) {
+    error = e;
+  }
+  expect(error as ParseError).toHaveProperty('tokenLevel', 2);
+});
+test('generated command parses correctly', async () => {
+  expect(
+    await commandMatcherFunction('rm add owo 10s howdy there friend', null)
+  ).toStrictEqual({
+    duration: '10s',
+    emote: 'owo',
+    text: 'howdy there friend',
+  });
+});
+test('generated command parses correctly with optionals missing', async () => {
+  expect(
+    await commandMatcherFunction('rm add 10s howdy there friend', null)
+  ).toStrictEqual({
+    duration: '10s',
+    text: 'howdy there friend',
+  });
+});
+test('generated command handles errors properly', async () => {
+  await expect(
+    commandMatcherFunction('rm addowo howdy there friend', null)
+  ).rejects.toThrow('Expected " ", found o');
+});
+test('generated command errors give correct tokenLevel', async () => {
+  let error: ParseError | undefined;
+  try {
+    await commandMatcherFunction('rm addowo howdy there friend', null);
   } catch (e) {
     error = e;
   }

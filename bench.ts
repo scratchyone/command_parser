@@ -4,6 +4,7 @@ import {
   matchCommand,
   ParserStream,
   ParseError,
+  generateCommandMatcherFunction,
 } from './main';
 
 import Benchmark from 'benchmark';
@@ -41,6 +42,7 @@ const commandString =
   'reminder/rm add <emote: "uwu" | "owo"> <duration: word> <text: string>';
 
 const ast = parseCommandGrammar(commandString);
+const commandMatcherFunction = generateCommandMatcherFunction(ast, types);
 
 suite
   .add('parseCommandGrammar', function () {
@@ -49,8 +51,14 @@ suite
   .add('generateCommandString', function () {
     generateCommandString(ast);
   })
-  .add('matchCommand', function () {
+  .add('generateCommandMatcherFunction', function () {
+    generateCommandMatcherFunction(ast, types);
+  })
+  .add('matchCommandFromAst', function () {
     matchCommand(ast, 'rm add owo 10s howdy', types, null);
+  })
+  .add('matchCommandGenerated', function () {
+    commandMatcherFunction('rm add owo 10s howdy', null);
   })
   .on('cycle', function (event: any) {
     console.log(String(event.target));

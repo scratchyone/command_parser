@@ -18,17 +18,16 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "js-string-escape": "^1.0.1",
     "pegjs": "^0.10.0"
   },
   "devDependencies": {
     "@types/benchmark": "^2.1.0",
     "@types/jest": "^26.0.21",
-    "@types/js-string-escape": "^1.0.0",
     "@types/node": "^14.14.10",
     "@typescript-eslint/eslint-plugin": "^4.9.0",
     "@typescript-eslint/parser": "^4.9.0",
     "benchmark": "^2.1.4",
+    "copyfiles": "^2.4.1",
     "eslint": "^7.15.0",
     "eslint-config-prettier": "^7.0.0",
     "eslint-plugin-prettier": "^3.2.0",

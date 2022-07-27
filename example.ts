@@ -1,6 +1,7 @@
 import {
+  generateCommandString,
+  matchCommand,
   parseCommandGrammar,
-  generateCommandMatcherFunction,
   ParseError,
   ParserStream,
 } from './main';
@@ -36,9 +37,7 @@ const commandString =
   'reminder/rm add [emote: "uwu" | "owo"] <duration: word> [text: string]';
 
 const ast = parseCommandGrammar(commandString);
-
-const res = generateCommandMatcherFunction(ast, types);
-console.log(res.toString());
+console.log(generateCommandString(ast));
 (async () => {
-  console.log(await res('rm add uwu 10s', null));
+  console.log(await matchCommand(ast, 'rm add uwu 10s', types, null));
 })();

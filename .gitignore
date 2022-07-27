@@ -1,3 +1,4 @@
 build
 node_modules
 grammar.js
+debug.ts

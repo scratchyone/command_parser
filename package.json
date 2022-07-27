@@ -1,6 +1,6 @@
 {
   "name": "@scratchyone/command_parser",
-  "version": "2.3.1",
+  "version": "3.0.0",
   "main": "build/main.js",
   "types": "build/main.d.ts",
   "scripts": {
